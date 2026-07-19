@@ -1,47 +1,89 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+// The module 'vscode' contains the VS Code extensibility API.
+import * as vscode from "vscode";
 
+import MyCodeLensProvider from "./my_codelens_provider";
+import {
+    runCode,
+    compileCode,
+    compileAndRunCode,
+    debugCode
+} from "./commands";
 
-import MyCodeLensProvider from "./myCodeLensProvider";
-import { runCode, compileCode, compileAndRunCode, debugCode } from "./commands";
+// This method is called when your extension is activated.
+export function activate(context: vscode.ExtensionContext): void {
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+    const commandDefinitions = [
+        {
+            id: "c-cpp-codelens.compileCode",
+            handler: compileCode
+        },
+        {
+            id: "c-cpp-codelens.runCode",
+            handler: runCode
+        },
+        {
+            id: "c-cpp-codelens.compileAndRunCode",
+            handler: compileAndRunCode
+        },
+        {
+            id: "c-cpp-codelens.debugCode",
+            handler: debugCode
+        }
+    ];
 
-	let commandDisposable1 = vscode.commands.registerCommand('c-cpp-codelens.runCode', runCode);
-	let commandDisposable2 = vscode.commands.registerCommand('c-cpp-codelens.compileCode', compileCode);
-	let commandDisposable3 = vscode.commands.registerCommand('c-cpp-codelens.compileAndRunCode', compileAndRunCode);
-	let commandDisposable4 = vscode.commands.registerCommand('c-cpp-codelens.debugCode', debugCode);
-    
+    const commandDisposables = commandDefinitions.map(cmd =>
+        vscode.commands.registerCommand(
+            cmd.id,
+            cmd.handler
+        )
+    );
 
-	let docSelector = {
-      language: 'cpp',
-      scheme: 'file',
-    }
-	let codeLensProviderDisposable = vscode.languages.registerCodeLensProvider(
-      docSelector,
-      new MyCodeLensProvider()
-    )
+    const selector: vscode.DocumentSelector = [
+        {
+            language: "c",
+            scheme: "file"
+        },
+        {
+            language: "cpp",
+            scheme: "file"
+        }
+    ];
 
-	let docSelector2 = {
-      language: 'c',
-      scheme: 'file',
-    }
-	let codeLensProviderDisposable2 = vscode.languages.registerCodeLensProvider(
-      docSelector2,
-      new MyCodeLensProvider()
-    )
+    const codeLensProviderDisposable =
+        vscode.languages.registerCodeLensProvider(
+            selector,
+            new MyCodeLensProvider()
+        );
 
-    context.subscriptions.push(commandDisposable1);
-	context.subscriptions.push(commandDisposable2);
-	context.subscriptions.push(commandDisposable3);
-	context.subscriptions.push(commandDisposable4);
-	context.subscriptions.push(codeLensProviderDisposable);
-	context.subscriptions.push(codeLensProviderDisposable2);
-
+    context.subscriptions.push(
+        ...commandDisposables,
+        codeLensProviderDisposable
+    );
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+// This method is called when your extension is deactivated.
+export function deactivate(): void {}
+
+// Helper function to find the main function in a C/C++ file.
+export function findMain(
+    symbols: vscode.DocumentSymbol[]
+): vscode.DocumentSymbol | undefined {
+
+    for (const symbol of symbols) {
+
+        if (
+            symbol.name === "main" ||
+            symbol.name.startsWith("main(")
+        ) {
+            return symbol;
+        }
+
+        const nested = findMain(symbol.children ?? []);
+
+        if (nested) {
+            return nested;
+        }
+    }
+
+    return undefined;
+}
