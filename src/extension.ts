@@ -2,7 +2,10 @@
 import * as vscode from "vscode";
 
 import MyCodeLensProvider from "./my_codelens_provider";
-import { CODELENS_COMMANDS } from "./commands";
+import {
+    CODELENS_COMMANDS,
+    SUPPORTED_LANGUAGE_IDS
+} from "./commands";
 
 // This method is called when your extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
@@ -14,16 +17,11 @@ export function activate(context: vscode.ExtensionContext): void {
         )
     );
 
-    const selector: vscode.DocumentSelector = [
-        {
-            language: "c",
+    const selector: vscode.DocumentSelector =
+        SUPPORTED_LANGUAGE_IDS.map(language => ({
+            language,
             scheme: "file"
-        },
-        {
-            language: "cpp",
-            scheme: "file"
-        }
-    ];
+        }));
 
     const codeLensProviderDisposable =
         vscode.languages.registerCodeLensProvider(

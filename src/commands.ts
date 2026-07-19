@@ -1,6 +1,11 @@
 import * as vscode from "vscode";
 
-type LanguageId = "c" | "cpp";
+export const SUPPORTED_LANGUAGE_IDS = [
+    "c",
+    "cpp"
+] as const;
+
+type LanguageId = (typeof SUPPORTED_LANGUAGE_IDS)[number];
 type CommandAction = "run" | "compile" | "compileAndRun" | "debug";
 type CommandMode = "task" | "debug";
 
@@ -115,8 +120,8 @@ function resolveTaskName(
 
     const ext = vscode.window.activeTextEditor?.document.languageId;
 
-    if (ext === "c" || ext === "cpp") {
-        return definition.taskNameByLanguage?.[ext];
+    if (ext && SUPPORTED_LANGUAGE_IDS.includes(ext as LanguageId)) {
+        return definition.taskNameByLanguage?.[ext as LanguageId];
     }
 
     vscode.window.showErrorMessage("Language not detected");
@@ -164,7 +169,7 @@ async function handleTask(taskName: string): Promise<void> {
     const tasks = await vscode.tasks.fetchTasks();
 
     const task = tasks.find(
-        t => t.name === taskName
+        (t: vscode.Task) => t.name === taskName
     );
 
     if (!task) {
