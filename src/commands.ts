@@ -1,19 +1,55 @@
 import * as vscode from "vscode";
 
-export const SUPPORTED_LANGUAGE_IDS = [
-    "c",
-    "cpp"
+const COMMAND_CONFIGURATIONS = [
+    {
+        id: "c-cpp-codelens.compileCode",
+        title: "Compile",
+        action: "compile",
+        mode: "task",
+        taskNameByLanguage: {
+            cpp: "C++: clang++ compile current file",
+            c: "C: clang compile current file"
+        }
+    },
+    {
+        id: "c-cpp-codelens.runCode",
+        title: "▶ Run",
+        action: "run",
+        mode: "task",
+        taskName: "Run current file"
+    },
+    {
+        id: "c-cpp-codelens.compileAndRunCode",
+        title: "Compile and ▶ Run",
+        action: "compileAndRun",
+        mode: "task",
+        taskNameByLanguage: {
+            cpp: "C++: clang++ compile and run current file",
+            c: "C: clang compile and run current file"
+        }
+    },
+    {
+        id: "c-cpp-codelens.debugCode",
+        title: "⚙ Debug",
+        action: "debug",
+        mode: "debug",
+        taskNameByLanguage: {
+            cpp: "C++: clang++ compile and debug current file",
+            c: "C: clang compile and debug current file"
+        }
+    }
 ] as const;
 
-type LanguageId = (typeof SUPPORTED_LANGUAGE_IDS)[number];
-type CommandAction = "run" | "compile" | "compileAndRun" | "debug";
-type CommandMode = "task" | "debug";
-
-interface CommandExecutionDefinition {
-    mode: CommandMode;
-    taskName?: string;
-    taskNameByLanguage?: Record<LanguageId, string>;
-}
+type RawCommandConfiguration = (typeof COMMAND_CONFIGURATIONS)[number];
+type CommandAction = RawCommandConfiguration["action"];
+type CommandMode = RawCommandConfiguration["mode"];
+type ConfigWithLanguageMap = Extract<
+    RawCommandConfiguration,
+    { taskNameByLanguage: unknown }
+>;
+type LanguageId = keyof NonNullable<
+    ConfigWithLanguageMap["taskNameByLanguage"]
+>;
 
 export interface CodeLensCommandDefinition {
     id: string;
@@ -22,87 +58,36 @@ export interface CodeLensCommandDefinition {
     handler: () => Promise<void>;
 }
 
-const COMMAND_EXECUTION_DEFINITIONS: Record<CommandAction, CommandExecutionDefinition> = {
-    run: {
-        mode: "task",
-        taskName: "Run current file"
-    },
-    compile: {
-        mode: "task",
-        taskNameByLanguage: {
-            cpp: "C++: clang++ compile current file",
-            c: "C: clang compile current file"
-        }
-    },
-    compileAndRun: {
-        mode: "task",
-        taskNameByLanguage: {
-            cpp: "C++: clang++ compile and run current file",
-            c: "C: clang compile and run current file"
-        }
-    },
-    debug: {
-        mode: "debug",
-        taskNameByLanguage: {
-            cpp: "C++: clang++ compile and debug current file",
-            c: "C: clang compile and debug current file"
-        }
-    }
-};
+export const SUPPORTED_LANGUAGE_IDS = Array.from(
+    new Set(
+        COMMAND_CONFIGURATIONS.flatMap(
+            config =>
+                "taskNameByLanguage" in config
+                    ? Object.keys(config.taskNameByLanguage) as LanguageId[]
+                    : []
+        )
+    )
+);
 
-export const CODELENS_COMMANDS: CodeLensCommandDefinition[] = [
-    {
-        id: "c-cpp-codelens.compileCode",
-        title: "Compile",
-        action: "compile",
-        handler: compileCode
-    },
-    {
-        id: "c-cpp-codelens.runCode",
-        title: "▶ Run",
-        action: "run",
-        handler: runCode
-    },
-    {
-        id: "c-cpp-codelens.compileAndRunCode",
-        title: "Compile and ▶ Run",
-        action: "compileAndRun",
-        handler: compileAndRunCode
-    },
-    {
-        id: "c-cpp-codelens.debugCode",
-        title: "⚙ Debug",
-        action: "debug",
-        handler: debugCode
-    }
-];
+export const CODELENS_COMMANDS: CodeLensCommandDefinition[] =
+    COMMAND_CONFIGURATIONS.map(config => ({
+        id: config.id,
+        title: config.title,
+        action: config.action,
+        handler: () => executeCommandConfiguration(config)
+    }));
 
-export async function runCode(): Promise<void> {
-    await executeAction("run");
-}
+async function executeCommandConfiguration(
+    config: RawCommandConfiguration
+): Promise<void> {
 
-export async function compileCode(): Promise<void> {
-    await executeAction("compile");
-}
-
-export async function compileAndRunCode(): Promise<void> {
-    await executeAction("compileAndRun");
-}
-
-export async function debugCode(): Promise<void> {
-    await executeAction("debug");
-}
-
-async function executeAction(action: CommandAction): Promise<void> {
-
-    const definition = COMMAND_EXECUTION_DEFINITIONS[action];
-    const taskName = resolveTaskName(definition);
+    const taskName = resolveTaskName(config);
 
     if (!taskName) {
         return;
     }
 
-    if (definition.mode === "debug") {
+    if (config.mode === "debug") {
         await handleDebug(taskName);
         return;
     }
@@ -111,17 +96,21 @@ async function executeAction(action: CommandAction): Promise<void> {
 }
 
 function resolveTaskName(
-    definition: CommandExecutionDefinition
+    config: RawCommandConfiguration
 ): string | undefined {
 
-    if (definition.taskName) {
-        return definition.taskName;
+    if ("taskName" in config) {
+        return config.taskName;
     }
 
     const ext = vscode.window.activeTextEditor?.document.languageId;
 
-    if (ext && SUPPORTED_LANGUAGE_IDS.includes(ext as LanguageId)) {
-        return definition.taskNameByLanguage?.[ext as LanguageId];
+    if (
+        ext &&
+        "taskNameByLanguage" in config &&
+        ext in config.taskNameByLanguage
+    ) {
+        return config.taskNameByLanguage[ext as LanguageId];
     }
 
     vscode.window.showErrorMessage("Language not detected");
