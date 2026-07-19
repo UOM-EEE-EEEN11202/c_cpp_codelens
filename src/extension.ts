@@ -2,36 +2,12 @@
 import * as vscode from "vscode";
 
 import MyCodeLensProvider from "./my_codelens_provider";
-import {
-    runCode,
-    compileCode,
-    compileAndRunCode,
-    debugCode
-} from "./commands";
+import { CODELENS_COMMANDS } from "./commands";
 
 // This method is called when your extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
 
-    const commandDefinitions = [
-        {
-            id: "c-cpp-codelens.compileCode",
-            handler: compileCode
-        },
-        {
-            id: "c-cpp-codelens.runCode",
-            handler: runCode
-        },
-        {
-            id: "c-cpp-codelens.compileAndRunCode",
-            handler: compileAndRunCode
-        },
-        {
-            id: "c-cpp-codelens.debugCode",
-            handler: debugCode
-        }
-    ];
-
-    const commandDisposables = commandDefinitions.map(cmd =>
+    const commandDisposables = CODELENS_COMMANDS.map(cmd =>
         vscode.commands.registerCommand(
             cmd.id,
             cmd.handler

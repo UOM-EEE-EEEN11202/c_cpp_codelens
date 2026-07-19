@@ -1,15 +1,15 @@
 import {
-  commands,
-  CodeLensProvider,
-  TextDocument,
-  DocumentSymbol,
-  CodeLens,
-  Range,
-  Command
+    commands,
+    CodeLensProvider,
+    TextDocument,
+    DocumentSymbol,
+    CodeLens,
+    Range
 } from "vscode";
 
 
 import { findMain } from './extension';
+import { CODELENS_COMMANDS } from "./commands";
 
 
 class MyCodeLensProvider implements CodeLensProvider {
@@ -37,27 +37,11 @@ class MyCodeLensProvider implements CodeLensProvider {
               )
             : new Range(0, 0, 0, 0);
 
-        const lensCommands: Command[] = [
-            {
-                command: "c-cpp-codelens.compileCode",
-                title: "Compile"
-            },
-            {
-                command: "c-cpp-codelens.runCode",
-                title: "▶ Run"
-            },
-            {
-                command: "c-cpp-codelens.compileAndRunCode",
-                title: "Compile and ▶ Run"
-            },
-            {
-                command: "c-cpp-codelens.debugCode",
-                title: "⚙ Debug"
-            }
-        ];
-
-        return lensCommands.map(
-            cmd => new CodeLens(codeLensPosition, cmd)
+        return CODELENS_COMMANDS.map(
+            cmd => new CodeLens(codeLensPosition, {
+                command: cmd.id,
+                title: cmd.title
+            })
         );
 
     }

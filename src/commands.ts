@@ -1,58 +1,126 @@
 import * as vscode from "vscode";
 
+type LanguageId = "c" | "cpp";
+type CommandAction = "run" | "compile" | "compileAndRun" | "debug";
+type CommandMode = "task" | "debug";
+
+interface CommandExecutionDefinition {
+    mode: CommandMode;
+    taskName?: string;
+    taskNameByLanguage?: Record<LanguageId, string>;
+}
+
+export interface CodeLensCommandDefinition {
+    id: string;
+    title: string;
+    action: CommandAction;
+    handler: () => Promise<void>;
+}
+
+const COMMAND_EXECUTION_DEFINITIONS: Record<CommandAction, CommandExecutionDefinition> = {
+    run: {
+        mode: "task",
+        taskName: "Run current file"
+    },
+    compile: {
+        mode: "task",
+        taskNameByLanguage: {
+            cpp: "C++: clang++ compile current file",
+            c: "C: clang compile current file"
+        }
+    },
+    compileAndRun: {
+        mode: "task",
+        taskNameByLanguage: {
+            cpp: "C++: clang++ compile and run current file",
+            c: "C: clang compile and run current file"
+        }
+    },
+    debug: {
+        mode: "debug",
+        taskNameByLanguage: {
+            cpp: "C++: clang++ compile and debug current file",
+            c: "C: clang compile and debug current file"
+        }
+    }
+};
+
+export const CODELENS_COMMANDS: CodeLensCommandDefinition[] = [
+    {
+        id: "c-cpp-codelens.compileCode",
+        title: "Compile",
+        action: "compile",
+        handler: compileCode
+    },
+    {
+        id: "c-cpp-codelens.runCode",
+        title: "▶ Run",
+        action: "run",
+        handler: runCode
+    },
+    {
+        id: "c-cpp-codelens.compileAndRunCode",
+        title: "Compile and ▶ Run",
+        action: "compileAndRun",
+        handler: compileAndRunCode
+    },
+    {
+        id: "c-cpp-codelens.debugCode",
+        title: "⚙ Debug",
+        action: "debug",
+        handler: debugCode
+    }
+];
+
 export async function runCode(): Promise<void> {
-    await handleTask("Run current file");
+    await executeAction("run");
 }
 
 export async function compileCode(): Promise<void> {
-    const ext = vscode.window.activeTextEditor?.document.languageId;
-
-    let taskName: string;
-
-    if (ext === "cpp") {
-        taskName = "C++: clang++ compile current file";
-    } else if (ext === "c") {
-        taskName = "C: clang compile current file";
-    } else {
-        vscode.window.showErrorMessage("Language not detected");
-        return;
-    }
-
-    await handleTask(taskName);
+    await executeAction("compile");
 }
 
 export async function compileAndRunCode(): Promise<void> {
-    const ext = vscode.window.activeTextEditor?.document.languageId;
+    await executeAction("compileAndRun");
+}
 
-    let taskName: string;
+export async function debugCode(): Promise<void> {
+    await executeAction("debug");
+}
 
-    if (ext === "cpp") {
-        taskName = "C++: clang++ compile and run current file";
-    } else if (ext === "c") {
-        taskName = "C: clang compile and run current file";
-    } else {
-        vscode.window.showErrorMessage("Language not detected");
+async function executeAction(action: CommandAction): Promise<void> {
+
+    const definition = COMMAND_EXECUTION_DEFINITIONS[action];
+    const taskName = resolveTaskName(definition);
+
+    if (!taskName) {
+        return;
+    }
+
+    if (definition.mode === "debug") {
+        await handleDebug(taskName);
         return;
     }
 
     await handleTask(taskName);
 }
 
-export async function debugCode(): Promise<void> {
-    const ext = vscode.window.activeTextEditor?.document.languageId;
+function resolveTaskName(
+    definition: CommandExecutionDefinition
+): string | undefined {
 
-    let taskName: string;
-
-    if (ext === "cpp") {
-        taskName = "C++: clang++ compile and debug current file";
-    } else if (ext === "c") {
-        taskName = "C: clang compile and debug current file";
-    } else {
-        vscode.window.showErrorMessage("Language not detected");
-        return;
+    if (definition.taskName) {
+        return definition.taskName;
     }
 
-    await handleDebug(taskName);
+    const ext = vscode.window.activeTextEditor?.document.languageId;
+
+    if (ext === "c" || ext === "cpp") {
+        return definition.taskNameByLanguage?.[ext];
+    }
+
+    vscode.window.showErrorMessage("Language not detected");
+    return undefined;
 }
 
 async function handleDebug(taskName: string): Promise<void> {
