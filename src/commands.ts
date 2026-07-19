@@ -1,110 +1,116 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-
-async function runCode() {
-  var taskName:string = 'Run current file';
-  await handleTask(taskName);
+export async function runCode(): Promise<void> {
+    await handleTask("Run current file");
 }
 
-async function compileCode() {
-  let ext = vscode.window.activeTextEditor?.document.languageId;
-  if (ext == 'cpp') {
-    var taskName:string = 'C++: clang++ compile current file';
-  } else if (ext == 'c') {
-    var taskName:string = 'C: clang compile current file';
-  }
-  else {
-    var taskName:string = 'Error. Language not detected';
-  }
-  await handleTask(taskName);
-}
+export async function compileCode(): Promise<void> {
+    const ext = vscode.window.activeTextEditor?.document.languageId;
 
-async function compileAndRunCode() {
-  let ext = vscode.window.activeTextEditor?.document.languageId;
-  if (ext === 'cpp') {
-    var taskName:string = 'C++: clang++ compile and run current file';
-  } else if (ext == 'c') {
-    var taskName:string = 'C: clang compile and run current file';
-  }
-  else {
-    var taskName:string = 'Error. Language not detected';
-  }
-  await handleTask(taskName);
-}
+    let taskName: string;
 
-async function debugCode() {
-  var ext = vscode.window.activeTextEditor?.document.languageId;
-  if (ext === 'cpp') {
-    var taskName:string = 'C++: clang++ compile and debug current file';
-  } else if (ext == 'c') {
-    var taskName:string = 'C: clang compile and debug current file';
-  } else {
-    var taskName:string = 'Error. Language not detected';
-  }
-  await handleDebug(taskName);
-}
-
-
-async function handleDebug(taskName:string) {
-
-  // Start a debug session
-
-  // Get the active workspace folder
-  let activeEditor = vscode.window.activeTextEditor;
-  if (!activeEditor) {
-    vscode.window.showErrorMessage('No active editor found');
-    return;
-  }
-  let workspaceFolder = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri);
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage('No workspace folder found');
-    return;
-  }
-
-  // Run task
-  try {
-    vscode.window.showErrorMessage(taskName);
-    vscode.debug.startDebugging(workspaceFolder, taskName);
-    return null;
-  }
-  catch (e) {
-    vscode.window.showErrorMessage('Error running the debugger ' + taskName + ' check the launch.json file in the .vscode folder');
-    return null;
-  }
-  
-}
-
-
-async function handleTask(taskName:string) {
-
-  // Get a list of tasks
-  var tasks = await vscode.tasks.fetchTasks();
-  var task: vscode.Task | undefined = undefined;
-
-  // Search for a task by name
-  for (var t of tasks) {
-    if (t.name === taskName) {
-      task = t;
-      break;
+    if (ext === "cpp") {
+        taskName = "C++: clang++ compile current file";
+    } else if (ext === "c") {
+        taskName = "C: clang compile current file";
+    } else {
+        vscode.window.showErrorMessage("Language not detected");
+        return;
     }
-  }
 
-  // Check can find task
-  if (task === undefined) {
-    vscode.window.showErrorMessage('Can\'t find task \"' + taskName + '\" check the tasks.json file in the .vscode folder');
-    return;
-  }
-
-  // Run task
-  try {
-    var execution = await vscode.tasks.executeTask(task);
-    return null;
-  }
-  catch (e) {
-    vscode.window.showErrorMessage('Error running the task ' + taskName + ' check .vscode folder');
-    return null;
-  }
-  
+    await handleTask(taskName);
 }
 
-export { runCode, compileCode, compileAndRunCode, debugCode };
+export async function compileAndRunCode(): Promise<void> {
+    const ext = vscode.window.activeTextEditor?.document.languageId;
+
+    let taskName: string;
+
+    if (ext === "cpp") {
+        taskName = "C++: clang++ compile and run current file";
+    } else if (ext === "c") {
+        taskName = "C: clang compile and run current file";
+    } else {
+        vscode.window.showErrorMessage("Language not detected");
+        return;
+    }
+
+    await handleTask(taskName);
+}
+
+export async function debugCode(): Promise<void> {
+    const ext = vscode.window.activeTextEditor?.document.languageId;
+
+    let taskName: string;
+
+    if (ext === "cpp") {
+        taskName = "C++: clang++ compile and debug current file";
+    } else if (ext === "c") {
+        taskName = "C: clang compile and debug current file";
+    } else {
+        vscode.window.showErrorMessage("Language not detected");
+        return;
+    }
+
+    await handleDebug(taskName);
+}
+
+async function handleDebug(taskName: string): Promise<void> {
+
+    const activeEditor = vscode.window.activeTextEditor;
+
+    if (!activeEditor) {
+        vscode.window.showErrorMessage("No active editor found");
+        return;
+    }
+
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(
+        activeEditor.document.uri
+    );
+
+    if (!workspaceFolder) {
+        vscode.window.showErrorMessage("No workspace folder found");
+        return;
+    }
+
+    try {
+        const started = await vscode.debug.startDebugging(
+            workspaceFolder,
+            taskName
+        );
+
+        if (!started) {
+            vscode.window.showErrorMessage(
+                `Failed to start debugger "${taskName}"`
+            );
+        }
+    } catch (e) {
+        vscode.window.showErrorMessage(
+            `Error running debugger "${taskName}". Check launch.json in the .vscode folder.`
+        );
+    }
+}
+
+async function handleTask(taskName: string): Promise<void> {
+
+    const tasks = await vscode.tasks.fetchTasks();
+
+    const task = tasks.find(
+        t => t.name === taskName
+    );
+
+    if (!task) {
+        vscode.window.showErrorMessage(
+            `Can't find task "${taskName}". Check tasks.json in the .vscode folder.`
+        );
+        return;
+    }
+
+    try {
+        await vscode.tasks.executeTask(task);
+    } catch (e) {
+        vscode.window.showErrorMessage(
+            `Error running task "${taskName}". Check the .vscode folder.`
+        );
+    }
+}
