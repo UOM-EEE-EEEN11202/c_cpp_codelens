@@ -9,6 +9,9 @@ import {
 } from "vscode";
 
 
+import { findMain } from './extension';
+
+
 class MyCodeLensProvider implements CodeLensProvider {
 
     async provideCodeLenses(
