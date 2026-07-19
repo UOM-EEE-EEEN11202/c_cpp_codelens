@@ -9,25 +9,6 @@ import {
 } from "vscode";
 
 
-function findMain(
-    symbols: DocumentSymbol[]
-): DocumentSymbol | undefined {
-    for (const symbol of symbols) {
-
-        if (symbol.name === "main" || symbol.name.startsWith("main(")) {
-            return symbol;
-        }
-
-        const nested = findMain(symbol.children ?? []);
-
-        if (nested) {
-            return nested;
-        }
-    }
-
-    return undefined;
-}
-
 class MyCodeLensProvider implements CodeLensProvider {
 
     async provideCodeLenses(
