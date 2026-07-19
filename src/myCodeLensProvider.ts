@@ -1,46 +1,82 @@
 import {
+  commands,
   CodeLensProvider,
   TextDocument,
+  DocumentSymbol,
   CodeLens,
   Range,
   Command
 } from "vscode";
 
+
+function findMain(
+    symbols: DocumentSymbol[]
+): DocumentSymbol | undefined {
+    for (const symbol of symbols) {
+
+        if (symbol.name === "main" || symbol.name.startsWith("main(")) {
+            return symbol;
+        }
+
+        const nested = findMain(symbol.children ?? []);
+
+        if (nested) {
+            return nested;
+        }
+    }
+
+    return undefined;
+}
+
 class MyCodeLensProvider implements CodeLensProvider {
-  // Each provider requires a provideCodeLenses function which will give the various documents
-  // the code lenses
-  async provideCodeLenses(document: TextDocument): Promise<CodeLens[]> {
-    // Define where the CodeLens will exist
-    let topOfDocument = new Range(0, 0, 0, 0);
 
-    // Define what command we want to trigger when activating the CodeLens
-    let a: Command = {
-      command: "c-cpp-codelens.compileCode",
-      title: "Compile"
-    };
+    async provideCodeLenses(
+        document: TextDocument
+    ): Promise<CodeLens[]> {
 
-    let b: Command = {
-      command: "c-cpp-codelens.runCode",
-      title: "▶ Run"
-    };
 
-    let c: Command = {
-      command: "c-cpp-codelens.compileAndRunCode",
-      title: "Compile and ▶ Run"
-    };
+        const symbols = await commands.executeCommand<
+            DocumentSymbol[] | undefined
+        >(
+            "vscode.executeDocumentSymbolProvider",
+            document.uri
+        );
 
-    let d: Command = {
-      command: "c-cpp-codelens.debugCode",
-      title: "⚙ Debug"
-    };
 
-    let codeLens = new CodeLens(topOfDocument, a);
-    let codeLens2 = new CodeLens(topOfDocument, b);
-    let codeLens3 = new CodeLens(topOfDocument, c);
-    let codeLens4 = new CodeLens(topOfDocument, d);
+        const mainSymbol =
+            symbols ? findMain(symbols) : undefined;
 
-    return [codeLens, codeLens2, codeLens3, codeLens4];
-  }
+        const codeLensPosition = mainSymbol
+            ? new Range(
+                  mainSymbol.range.start,
+                  mainSymbol.range.start
+              )
+            : new Range(0, 0, 0, 0);
+
+        const lensCommands: Command[] = [
+            {
+                command: "c-cpp-codelens.compileCode",
+                title: "Compile"
+            },
+            {
+                command: "c-cpp-codelens.runCode",
+                title: "▶ Run"
+            },
+            {
+                command: "c-cpp-codelens.compileAndRunCode",
+                title: "Compile and ▶ Run"
+            },
+            {
+                command: "c-cpp-codelens.debugCode",
+                title: "⚙ Debug"
+            }
+        ];
+
+        return lensCommands.map(
+            cmd => new CodeLens(codeLensPosition, cmd)
+        );
+
+    }
 }
 
 export default MyCodeLensProvider;
