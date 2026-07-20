@@ -37,4 +37,4 @@ None at the moment
 * Additional tools needed: npm install
 * Additional tools needed: npx --package yo --package generator-code -- yo code
 * To debug: Select src/extension.ts and in Command Palette: Debug: Start Debugging
-* To publish: npm install -g @vscode/vsce. vsce package. vsce publish
+* To publish see https://code.visualstudio.com/api/working-with-extensions/publishing-extension: npm install -g @vscode/vsce. vsce package. vsce publish
