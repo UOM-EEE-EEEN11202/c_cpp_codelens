@@ -7,6 +7,8 @@ import {
     SUPPORTED_LANGUAGE_IDS
 } from "./commands";
 
+type DocumentSymbolLike = vscode.DocumentSymbol | vscode.SymbolInformation;
+
 // This method is called when your extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
 
@@ -40,8 +42,8 @@ export function deactivate(): void {}
 
 // Helper function to find the main function in a C/C++ file.
 export function findMain(
-    symbols: vscode.DocumentSymbol[]
-): vscode.DocumentSymbol | undefined {
+    symbols: DocumentSymbolLike[]
+): DocumentSymbolLike | undefined {
 
     for (const symbol of symbols) {
 
@@ -52,7 +54,7 @@ export function findMain(
             return symbol;
         }
 
-        const nested = findMain(symbol.children ?? []);
+        const nested = "children" in symbol ? findMain(symbol.children) : undefined;
 
         if (nested) {
             return nested;

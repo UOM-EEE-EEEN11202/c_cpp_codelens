@@ -4,7 +4,7 @@ A rough and ready extension to add codelens buttons for C/C++ files which call a
 
 ## Features
 
-Adds codelens buttons at the top of a C or C++ file to run build scripts. Adds buttons for compile, run, compile and run, and debug.
+Adds codelens buttons to C or C++ files to run build scripts. Adds buttons for compile, run, compile and run, and debug. If there is an int main function in the file the codelens appears above this. If there is no main function the codelens appears at the top of the file. 
 
 ## Requirements
 
@@ -31,3 +31,10 @@ None
 ## Release Notes
 
 None at the moment
+
+## Internal Notes
+* Uses container: mcr.microsoft.com/devcontainers/typescript-node
+* Additional tools needed: npm install
+* Additional tools needed: npx --package yo --package generator-code -- yo code
+* To debug: Select src/extension.ts and in Command Palette: Debug: Start Debugging
+* To publish: npm install -g @vscode/vsce. vsce package. vsce publish

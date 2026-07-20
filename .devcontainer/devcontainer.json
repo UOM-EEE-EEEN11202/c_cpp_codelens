@@ -1,0 +1,11 @@
+{
+    "name": "EEEN11202 devcontainer",
+    "image": "mcr.microsoft.com/devcontainers/typescript-node",
+    "runArgs": ["--platform=linux/arm64"],
+    "capAdd": ["SYS_PTRACE"],
+    "securityOpt": ["seccomp=unconfined"],
+    "waitFor": "postCreateCommand",
+    "postAttachCommand": "bash .devcontainer/post_attach.sh",
+	"forwardPorts": [],
+	"remoteUser": "node"
+}
